@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RukiiLoL</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+<header>
+    <div class="container header-content">
+        <div class="logo">RukiiLoL</div>
+
+        <nav class="menu">
+            <a href="#">Tierlist&Build</a>
+            <a href="#">Leaderboards</a>
+        </nav>
+
+        <div class="header-actions">
+            <button class="lang-btn">Español</button>
+        </div>
+    </div>
+</header>
+
+
+<main>
+    <main>
+        <!-- HOME -->
+        <section class="hero view view-home">
+            <div class="container">
+                <h2>Busca tu invocador</h2>
+                <p>Consulta estadísticas y partidas.</p>
+
+                <form class="search-form">
+                    <div class="input-wrapper">
+                        <input class="riot-id" type="text" placeholder="Riot ID (ej: Pepito#EUW)" />
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="view view-profile hidden">
+            <div class="container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="profileIcon" alt="Icono" />
+                        <span class="profile-level" id="profileLevel"></span>
+                    </div>
+
+                    <div class="profile-meta">
+                        <div class="profile-name" id="profileName">—</div>
+                        <div class="profile-sub" id="profileSub">—</div>
+                    </div>
+
+                    <div class="profile-actions">
+                        <button class="secondary-btn" id="backBtn">← Volver</button>
+                    </div>
+                </div>
+
+                <div class="profile-tabs">
+                    <button class="tab active">Summary</button>
+                    <button class="tab">Champions</button>
+                    <button class="tab">Live Game</button>
+                </div>
+
+                <div class="profile-content">
+                    <div class="left-col"></div>
+                    <div class="right-col">
+                        <div class="panel">
+                            <div class="panel-title">Últimas partidas</div>
+                            <div class="results"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</main>
+
+<footer>
+    <div class="container">
+        <p>Proyecto Rukii 1 DAM</p>
+    </div>
+</footer>
+<script src="/app.js"></script>
+</body>
+</html>
