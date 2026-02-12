@@ -9,17 +9,21 @@ const searchIcon = document.querySelector(".search-icon");
 
 const profileName = document.querySelector("#profileName");
 const profileSub = document.querySelector("#profileSub");
-const profilePuuid = document.querySelector("#profilePuuid");
 const backBtn = document.querySelector("#backBtn");
 
-const resultsDiv = document.querySelector(".results");
 const profileIcon = document.querySelector("#profileIcon");
 const profileLevel = document.querySelector("#profileLevel");
+
+const resultsDiv = document.querySelector(".results");
+const loadMoreBtn = document.querySelector("#loadMoreBtn");
+
+// ====== Estado global para paginación ======
 
 let currentPuuid = null;
 let currentStart = 0;
 const pageSize = 20;
 
+// ====== Helpers ======
 
 function showHomeView() {
   viewProfile.classList.add("hidden");
@@ -41,13 +45,20 @@ function parseRiotId(input) {
   if (!gameName || !tagLine) return null;
   return { gameName, tagLine };
 }
+
+function formatDuration(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return `${minutes}:${String(sec).padStart(2, "0")}`;
+}
+
+// ====== Routing (URL tipo DeepLoL) ======
+
 function buildSummonerPath(gameName, tagLine) {
-  // encodeURIComponent para que caracteres raros no rompan la URL
   return `/summoner/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}`;
 }
 
 function parseSummonerPath(pathname) {
-  // Espera: /summoner/<gameName>-<tagLine>
   const prefix = "/summoner/";
   if (!pathname.startsWith(prefix)) return null;
 
@@ -56,142 +67,14 @@ function parseSummonerPath(pathname) {
 
   if (parts.length < 2) return null;
 
-  // Si el nombre tuviera guiones, todo menos el último sería gameName
   const tagLine = decodeURIComponent(parts.pop());
   const gameName = decodeURIComponent(parts.join("-"));
 
   if (!gameName || !tagLine) return null;
-
   return { gameName, tagLine };
 }
 
-function formatDuration(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return `${minutes}:${String(sec).padStart(2, "0")}`;
-}
-
-// ====== Render de tarjetas (lista) ======
-
-function renderMatchCards(summaries) {
-  if (!Array.isArray(summaries) || summaries.length === 0) {
-    resultsDiv.innerHTML = `<p class="small">No hay partidas recientes para mostrar.</p>`;
-    return;
-  }
-
-  const ddragonVersion = "13.24.1";
-
-
-
-  const cardsHtml = summaries
-    .map((m) => {
-      const resultClass = m.win ? "win" : "lose";
-      const resultText = m.win ? "VICTORIA" : "DERROTA";
-      const timeText = formatDuration(m.gameDurationSeconds);
-      const position = m.position || "—";
-
-      const kdaRatio = ((m.kills + m.assists) / Math.max(1, m.deaths)).toFixed(2);
-
-      const cs = (m.totalMinionsKilled || 0) + (m.neutralMinionsKilled || 0);
-      const minutes = m.gameDurationSeconds / 60;
-      const csPerMin = minutes > 0 ? (cs / minutes).toFixed(1) : "0.0";
-
-      const gold = m.goldEarned || 0;
-      const goldK = (gold / 1000).toFixed(1);
-
-      const items = [m.item0, m.item1, m.item2, m.item3, m.item4, m.item5, m.item6];
-      if (m.roleBoundItem && m.roleBoundItem !== 0) items.push(m.roleBoundItem);
-
-      const itemsHtml = items
-        .filter((id) => id && id !== 0)
-        .map(
-          (id) => `
-            <img
-              class="item-icon"
-              src="https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${id}.png"
-              alt="item ${id}"
-              loading="lazy"
-              onerror="this.style.display='none'"
-            />
-          `
-        )
-        .join("");
-
-      return `
-        <div class="match-card ${resultClass}" data-match-id="${m.matchId}">
-          <div class="match-top">
-            <div style="display:flex; gap:12px; align-items:center;">
-              <img
-                src="https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${m.championName}.png"
-                alt="${m.championName}"
-                style="width:48px; height:48px; border-radius:12px;"
-                onerror="this.style.display='none'"
-              />
-              <div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                  <div class="match-champ">${m.championName}</div>
-                  <span class="role-badge">${position}</span>
-                </div>
-                <div class="small">${resultText} · Duración ${timeText}</div>
-              </div>
-            </div>
-
-            <div>
-              <div class="match-kda">${m.kills}/${m.deaths}/${m.assists}</div>
-              <div class="small">${kdaRatio} KDA</div>
-              <div class="small">${cs} CS (${csPerMin}/min)</div>
-              <div class="small">${goldK}k gold</div>
-            </div>
-          </div>
-
-          <div class="items-row">
-            ${itemsHtml || '<span class="small">Sin items</span>'}
-          </div>
-
-          <div class="match-extra">
-            <div class="small">Haz click para cargar detalles...</div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  resultsDiv.innerHTML = cardsHtml;
-
-  // Click: expand + cargar detalles (1 vez)
-  const cards = resultsDiv.querySelectorAll(".match-card");
-
-  cards.forEach((card) => {
-    card.addEventListener("click", async () => {
-      const isOpening = !card.classList.contains("expanded");
-      card.classList.toggle("expanded");
-
-      if (!isOpening) return;
-
-      const matchId = card.dataset.matchId;
-      const extra = card.querySelector(".match-extra");
-
-      if (card.dataset.loaded === "true") return;
-
-      try {
-        extra.innerHTML = `<div class="small">Cargando detalles de la partida...</div>`;
-
-        const res = await fetch(`/api/match-details?matchId=${encodeURIComponent(matchId)}`);
-        if (!res.ok) throw new Error("No se pudo cargar match-details");
-
-        const details = await res.json();
-
-        extra.innerHTML = renderMatchDetailsTable(details);
-        card.dataset.loaded = "true";
-      } catch (e) {
-        extra.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
-        console.error(e);
-      }
-    });
-  });
-}
-
-// ====== Render del desplegable (detalle) ======
+// ====== Render: desplegable match-details (Blue/Red) ======
 
 function renderMatchDetailsTable(details) {
   const ddragonVersion = "13.24.1";
@@ -306,16 +189,170 @@ function renderTeamTable(players, maxDmg, ddragonVersion) {
   `;
 }
 
+// ====== Render: cards (append para paginación) ======
+
+function wireMatchCard(card) {
+  card.addEventListener("click", async () => {
+    const isOpening = !card.classList.contains("expanded");
+    card.classList.toggle("expanded");
+    if (!isOpening) return;
+
+    const matchId = card.dataset.matchId;
+    const extra = card.querySelector(".match-extra");
+
+    if (card.dataset.loaded === "true") return;
+
+    try {
+      extra.innerHTML = `<div class="small">Cargando detalles de la partida...</div>`;
+
+      const res = await fetch(`/api/match-details?matchId=${encodeURIComponent(matchId)}`);
+      if (!res.ok) throw new Error("No se pudo cargar match-details");
+
+      const details = await res.json();
+
+      extra.innerHTML = renderMatchDetailsTable(details);
+      card.dataset.loaded = "true";
+    } catch (e) {
+      extra.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+      console.error(e);
+    }
+  });
+}
+
+function appendMatchCards(summaries) {
+  if (!Array.isArray(summaries) || summaries.length === 0) {
+    loadMoreBtn.classList.add("hidden");
+    return;
+  }
+
+  const ddragonVersion = "13.24.1";
+
+  const html = summaries
+    .map((m) => {
+      const resultClass = m.win ? "win" : "lose";
+      const resultText = m.win ? "VICTORIA" : "DERROTA";
+      const timeText = formatDuration(m.gameDurationSeconds);
+      const position = m.position || "—";
+
+      const kdaRatio = ((m.kills + m.assists) / Math.max(1, m.deaths)).toFixed(2);
+
+      const cs = (m.totalMinionsKilled || 0) + (m.neutralMinionsKilled || 0);
+      const minutes = m.gameDurationSeconds / 60;
+      const csPerMin = minutes > 0 ? (cs / minutes).toFixed(1) : "0.0";
+
+      const goldK = ((m.goldEarned || 0) / 1000).toFixed(1);
+
+      const items = [m.item0, m.item1, m.item2, m.item3, m.item4, m.item5, m.item6];
+      if (m.roleBoundItem && m.roleBoundItem !== 0) items.push(m.roleBoundItem);
+
+      const itemsHtml = items
+        .filter((id) => id && id !== 0)
+        .map(
+          (id) => `
+            <img
+              class="item-icon"
+              src="https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${id}.png"
+              alt="item ${id}"
+              loading="lazy"
+              onerror="this.style.display='none'"
+            />
+          `
+        )
+        .join("");
+
+      return `
+        <div class="match-card ${resultClass}" data-match-id="${m.matchId}">
+          <div class="match-top">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <img
+                src="https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${m.championName}.png"
+                alt="${m.championName}"
+                style="width:48px; height:48px; border-radius:12px;"
+                onerror="this.style.display='none'"
+              />
+              <div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <div class="match-champ">${m.championName}</div>
+                  <span class="role-badge">${position}</span>
+                </div>
+                <div class="small">${resultText} · Duración ${timeText}</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="match-kda">${m.kills}/${m.deaths}/${m.assists}</div>
+              <div class="small">${kdaRatio} KDA</div>
+              <div class="small">${cs} CS (${csPerMin}/min)</div>
+              <div class="small">${goldK}k gold</div>
+            </div>
+          </div>
+
+          <div class="items-row">
+            ${itemsHtml || '<span class="small">Sin items</span>'}
+          </div>
+
+          <div class="match-extra">
+            <div class="small">Haz click para cargar detalles...</div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  resultsDiv.insertAdjacentHTML("beforeend", html);
+
+  const newCards = resultsDiv.querySelectorAll(".match-card:not([data-wired='true'])");
+  newCards.forEach((card) => {
+    card.dataset.wired = "true";
+    wireMatchCard(card);
+  });
+}
+
 // ====== Eventos ======
 
 backBtn.addEventListener("click", () => {
   showHomeView();
+  history.pushState({}, "", "/");
 });
 
+// click en lupa => submit
 searchIcon.addEventListener("click", () => {
   form.requestSubmit();
 });
 
+// Botón cargar más (solo UNA vez)
+loadMoreBtn.addEventListener("click", () => {
+  if (!currentPuuid) return;
+
+  loadMoreBtn.disabled = true;
+  loadMoreBtn.textContent = "Cargando...";
+
+  fetch(
+    `/api/match-summaries?puuid=${encodeURIComponent(currentPuuid)}&count=${pageSize}&start=${currentStart}`
+  )
+    .then((r) => {
+      if (!r.ok) throw new Error("No se pudieron cargar más partidas");
+      return r.json();
+    })
+    .then((summaries) => {
+      appendMatchCards(summaries);
+      currentStart += summaries.length;
+
+      if (!summaries || summaries.length < pageSize) {
+        loadMoreBtn.classList.add("hidden");
+      }
+    })
+    .catch((e) => {
+      console.error(e);
+      alert("Error cargando más partidas");
+    })
+    .finally(() => {
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = "Cargar más";
+    });
+});
+
+// Submit del buscador
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -326,86 +363,70 @@ form.addEventListener("submit", (event) => {
   }
 
   const { gameName, tagLine } = parsed;
+
   history.pushState({}, "", buildSummonerPath(gameName, tagLine));
 
   showProfileView();
 
   profileName.textContent = `${gameName}#${tagLine}`;
   profileSub.textContent = "Cargando perfil…";
+
   resultsDiv.innerHTML = `<p class="small">Cargando partidas...</p>`;
 
-  fetch(`/api/resolve?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`)
+  fetch(
+    `/api/resolve?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`
+  )
     .then((response) => {
       if (!response.ok) throw new Error("Jugador no encontrado");
       return response.json();
     })
     .then((account) => {
-      profileName.textContent = `${account.gameName}#${account.tagLine}`;
-      profileSub.textContent = `PUUID: ${account.puuid}`;
-      const ddragonVersion = "13.24.1";
+      // Estado paginación
       currentPuuid = account.puuid;
       currentStart = 0;
 
+      // UI perfil
+      profileName.textContent = `${account.gameName}#${account.tagLine}`;
+      profileSub.textContent = "Perfil cargado";
+
+      // Icono + nivel
+      const ddragonVersion = "13.24.1";
+      fetch(`/api/summoner-info?puuid=${encodeURIComponent(account.puuid)}`)
+        .then((r) => {
+          if (!r.ok) throw new Error("No se pudo cargar summoner-info");
+          return r.json();
+        })
+        .then((info) => {
+          profileIcon.src = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/${info.profileIconId}.png`;
+          profileLevel.textContent = info.summonerLevel;
+        })
+        .catch((err) => {
+          console.error(err);
+          profileLevel.textContent = "";
+        });
+
+      // Limpiar resultados + mostrar botón
       resultsDiv.innerHTML = "";
       loadMoreBtn.classList.remove("hidden");
       loadMoreBtn.disabled = false;
       loadMoreBtn.textContent = "Cargar más";
 
-      return fetch(`/api/match-summaries?puuid=${encodeURIComponent(currentPuuid)}&count=${pageSize}&start=${currentStart}`);
-        .then(r => {
-          if (!r.ok) throw new Error("No se pudo cargar summoner-info");
-          return r.json();
-        })
-        .then(info => {
-          profileIcon.src = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/${info.profileIconId}.png`;
-          profileLevel.textContent = info.summonerLevel;
-          appendMatchCards(summaries);
-          currentStart += summaries.length;
-        })
-        .catch(err => {
-          console.error(err);
-          profileLevel.textContent = "";
-        });
-
-      return fetch(`/api/match-summaries?puuid=${encodeURIComponent(account.puuid)}&count=20`);
+      // Primera página (20)
+      return fetch(
+        `/api/match-summaries?puuid=${encodeURIComponent(currentPuuid)}&count=${pageSize}&start=${currentStart}`
+      );
     })
-
-    loadMoreBtn.addEventListener("click", () => {
-      if (!currentPuuid) return;
-
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.textContent = "Cargando...";
-
-      fetch(`/api/match-summaries?puuid=${encodeURIComponent(currentPuuid)}&count=${pageSize}&start=${currentStart}`)
-        .then(r => {
-          if (!r.ok) throw new Error("No se pudieron cargar más partidas");
-          return r.json();
-        })
-        .then((summaries) => {
-          appendMatchCards(summaries);
-          currentStart += summaries.length;
-
-          // si ya no hay más, ocultamos botón
-          if (!summaries || summaries.length < pageSize) {
-            loadMoreBtn.classList.add("hidden");
-          }
-        })
-        .catch((e) => {
-          console.error(e);
-          alert("Error cargando más partidas");
-        })
-        .finally(() => {
-          loadMoreBtn.disabled = false;
-          loadMoreBtn.textContent = "Cargar más";
-        });
-    });
-
     .then((response) => {
       if (!response.ok) throw new Error("No se pudieron cargar las partidas");
       return response.json();
     })
     .then((summaries) => {
-      renderMatchCards(summaries);
+      appendMatchCards(summaries);
+      currentStart += summaries.length;
+
+      if (!summaries || summaries.length < pageSize) {
+        loadMoreBtn.classList.add("hidden");
+      }
     })
     .catch((error) => {
       profileSub.textContent = "Error al cargar el perfil";
@@ -414,11 +435,11 @@ form.addEventListener("submit", (event) => {
     });
 });
 
+// Soporte: abrir directo /summoner/.. y back/forward
 window.addEventListener("DOMContentLoaded", () => {
   const parsed = parseSummonerPath(window.location.pathname);
   if (parsed) {
     riotIdInput.value = `${parsed.gameName}#${parsed.tagLine}`;
-    // Lanza la búsqueda como si el usuario pulsara buscar
     form.requestSubmit();
   }
 });
@@ -427,7 +448,6 @@ window.addEventListener("popstate", () => {
   const parsed = parseSummonerPath(window.location.pathname);
 
   if (!parsed) {
-    // Volvemos al home
     showHomeView();
     return;
   }
