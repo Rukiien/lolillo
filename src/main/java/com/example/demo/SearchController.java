@@ -71,5 +71,10 @@ public class SearchController {
         return riotService.getSummonerInfoByPuuid(puuid);
     }
 
+    @GetMapping("/rank")
+    public List<LeagueEntry> rank(@RequestParam String puuid) {
+        return riotService.getRankByPuuid(puuid);
+    }
+
 
 }

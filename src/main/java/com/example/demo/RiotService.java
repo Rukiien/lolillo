@@ -303,5 +303,23 @@ public class RiotService {
             throw new RuntimeException("No se pudo parsear summoner info", e);
         }
     }
+    public List<LeagueEntry> getRankByPuuid(String puuid) {
+
+        String url = "https://euw1.api.riotgames.com/lol/league/v4/entries/by-puuid/"
+                + puuid + "?api_key=" + riotConfig.getApiKey();
+
+        String raw = webClient.get()
+                .uri(url)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+        try {
+            return objectMapper.readValue(raw,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, LeagueEntry.class));
+        } catch (Exception e) {
+            throw new RuntimeException("Error parseando rank", e);
+        }
+    }
 
 }

@@ -16,6 +16,7 @@ const profileLevel = document.querySelector("#profileLevel");
 
 const resultsDiv = document.querySelector(".results");
 const loadMoreBtn = document.querySelector("#loadMoreBtn");
+const rankInfo = document.querySelector("#rankInfo");
 
 // ====== Estado global para paginación ======
 
@@ -221,7 +222,7 @@ function wireMatchCard(card) {
 
 function appendMatchCards(summaries) {
   if (!Array.isArray(summaries) || summaries.length === 0) {
-    loadMoreBtn.classList.add("hidden");
+    if (loadMoreBtn) loadMoreBtn.classList.add("hidden");
     return;
   }
 
@@ -311,6 +312,11 @@ function appendMatchCards(summaries) {
 // ====== Eventos ======
 
 backBtn.addEventListener("click", () => {
+  // reset mínimo
+  currentPuuid = null;
+  currentStart = 0;
+  if (loadMoreBtn) loadMoreBtn.classList.add("hidden");
+
   showHomeView();
   history.pushState({}, "", "/");
 });
@@ -321,36 +327,38 @@ searchIcon.addEventListener("click", () => {
 });
 
 // Botón cargar más (solo UNA vez)
-loadMoreBtn.addEventListener("click", () => {
-  if (!currentPuuid) return;
+if (loadMoreBtn) {
+  loadMoreBtn.addEventListener("click", () => {
+    if (!currentPuuid) return;
 
-  loadMoreBtn.disabled = true;
-  loadMoreBtn.textContent = "Cargando...";
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.textContent = "Cargando...";
 
-  fetch(
-    `/api/match-summaries?puuid=${encodeURIComponent(currentPuuid)}&count=${pageSize}&start=${currentStart}`
-  )
-    .then((r) => {
-      if (!r.ok) throw new Error("No se pudieron cargar más partidas");
-      return r.json();
-    })
-    .then((summaries) => {
-      appendMatchCards(summaries);
-      currentStart += summaries.length;
+    fetch(
+      `/api/match-summaries?puuid=${encodeURIComponent(currentPuuid)}&count=${pageSize}&start=${currentStart}`
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error("No se pudieron cargar más partidas");
+        return r.json();
+      })
+      .then((summaries) => {
+        appendMatchCards(summaries);
+        currentStart += summaries.length;
 
-      if (!summaries || summaries.length < pageSize) {
-        loadMoreBtn.classList.add("hidden");
-      }
-    })
-    .catch((e) => {
-      console.error(e);
-      alert("Error cargando más partidas");
-    })
-    .finally(() => {
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.textContent = "Cargar más";
-    });
-});
+        if (!summaries || summaries.length < pageSize) {
+          loadMoreBtn.classList.add("hidden");
+        }
+      })
+      .catch((e) => {
+        console.error(e);
+        alert("Error cargando más partidas");
+      })
+      .finally(() => {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = "Cargar más";
+      });
+  });
+}
 
 // Submit del buscador
 form.addEventListener("submit", (event) => {
@@ -365,11 +373,14 @@ form.addEventListener("submit", (event) => {
   const { gameName, tagLine } = parsed;
 
   history.pushState({}, "", buildSummonerPath(gameName, tagLine));
-
   showProfileView();
 
+  // reset UI rápido
   profileName.textContent = `${gameName}#${tagLine}`;
   profileSub.textContent = "Cargando perfil…";
+  if (rankInfo) rankInfo.innerHTML = `<div class="small">Cargando rank…</div>`;
+  if (profileIcon) profileIcon.removeAttribute("src");
+  if (profileLevel) profileLevel.textContent = "";
 
   resultsDiv.innerHTML = `<p class="small">Cargando partidas...</p>`;
 
@@ -385,9 +396,32 @@ form.addEventListener("submit", (event) => {
       currentPuuid = account.puuid;
       currentStart = 0;
 
-      // UI perfil
+      // UI perfil (sin PUUID visible)
       profileName.textContent = `${account.gameName}#${account.tagLine}`;
       profileSub.textContent = "Perfil cargado";
+
+      // Rank
+      if (rankInfo) {
+        fetch(`/api/rank?puuid=${encodeURIComponent(account.puuid)}`)
+          .then((r) => r.json())
+          .then((entries) => {
+            const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
+            if (!solo) {
+              rankInfo.innerHTML = `<div class="small">Sin clasificar</div>`;
+              return;
+            }
+            const winrate = ((solo.wins / (solo.wins + solo.losses)) * 100).toFixed(1);
+
+            rankInfo.innerHTML = `
+              <div><strong>${solo.tier} ${solo.rank}</strong> (${solo.leaguePoints} LP)</div>
+              <div class="small">${solo.wins}W / ${solo.losses}L</div>
+              <div class="small">Winrate: ${winrate}%</div>
+            `;
+          })
+          .catch(() => {
+            rankInfo.innerHTML = `<div class="small">No disponible</div>`;
+          });
+      }
 
       // Icono + nivel
       const ddragonVersion = "13.24.1";
@@ -397,19 +431,23 @@ form.addEventListener("submit", (event) => {
           return r.json();
         })
         .then((info) => {
-          profileIcon.src = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/${info.profileIconId}.png`;
-          profileLevel.textContent = info.summonerLevel;
+          if (profileIcon) {
+            profileIcon.src = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/${info.profileIconId}.png`;
+          }
+          if (profileLevel) profileLevel.textContent = info.summonerLevel;
         })
         .catch((err) => {
           console.error(err);
-          profileLevel.textContent = "";
+          if (profileLevel) profileLevel.textContent = "";
         });
 
       // Limpiar resultados + mostrar botón
       resultsDiv.innerHTML = "";
-      loadMoreBtn.classList.remove("hidden");
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.textContent = "Cargar más";
+      if (loadMoreBtn) {
+        loadMoreBtn.classList.remove("hidden");
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = "Cargar más";
+      }
 
       // Primera página (20)
       return fetch(
@@ -424,7 +462,7 @@ form.addEventListener("submit", (event) => {
       appendMatchCards(summaries);
       currentStart += summaries.length;
 
-      if (!summaries || summaries.length < pageSize) {
+      if (loadMoreBtn && (!summaries || summaries.length < pageSize)) {
         loadMoreBtn.classList.add("hidden");
       }
     })
