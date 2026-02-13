@@ -72,9 +72,13 @@ public class SearchController {
     }
 
     @GetMapping("/rank")
-    public List<LeagueEntry> rank(@RequestParam String puuid) {
-        return riotService.getRankByPuuid(puuid);
+    public ResponseEntity<?> rank(@RequestParam String puuid) {
+        try {
+            return ResponseEntity.ok(riotService.getRankByPuuid(puuid));
+        } catch (Exception e) {
+            e.printStackTrace(); // para que salga el error en consola
+            return ResponseEntity.status(500).body("Rank endpoint error: " + e.getMessage());
+        }
     }
-
 
 }

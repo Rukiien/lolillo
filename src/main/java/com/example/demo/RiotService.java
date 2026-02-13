@@ -254,14 +254,10 @@ public class RiotService {
             MatchDetails details = new MatchDetails();
             details.setMatchId(matchId);
 
-            // Saber si gana blue: en Riot viene por participant.win (todos iguales dentro del equipo)
             boolean blueWin = !blue.isEmpty() && info.get("participants").get(0) != null
                     ? blue.get(0).getTeamId() == 100 && root.get("info").get("participants") != null
                     : false;
 
-            // Forma más fiable: tomar el primer jugador del equipo blue y leer su "win"
-            // (para eso necesitamos leer win del JSON; lo hacemos aquí mismo sin añadirlo al DTO)
-            // Recalculamos:
             boolean computedBlueWin = false;
             for (JsonNode p : participants) {
                 if (p.get("teamId").asInt() == 100) {
@@ -321,5 +317,7 @@ public class RiotService {
             throw new RuntimeException("Error parseando rank", e);
         }
     }
+
+
 
 }

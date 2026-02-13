@@ -3,8 +3,8 @@ package com.example.demo;
 import java.util.List;
 
 public class ParticipantRow {
-    private int teamId;               // 100 (blue) / 200 (red)
-    private String riotId;            // "Nombre#TAG" si existe
+    private int teamId;
+    private String riotId;
     private String championName;
     private int champLevel;
 
@@ -12,12 +12,11 @@ public class ParticipantRow {
     private int deaths;
     private int assists;
 
-    private int cs;                   // totalMinionsKilled + neutralMinionsKilled
-    private int damageToChamps;       // totalDamageDealtToChampions
+    private int cs;
+    private int damageToChamps;
     private int goldEarned;
 
-    private List<Integer> items;      // item0..item6 (+ roleBoundItem si existe)
-
+    private List<Integer> items;
     // getters/setters
     public int getTeamId() { return teamId; }
     public void setTeamId(int teamId) { this.teamId = teamId; }

@@ -1,4 +1,7 @@
 package com.example.demo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 
 public class LeagueEntry {
 
@@ -8,6 +11,7 @@ public class LeagueEntry {
     private int leaguePoints;
     private int wins;
     private int losses;
+    private String leagueId;
 
     public String getQueueType() { return queueType; }
     public void setQueueType(String queueType) { this.queueType = queueType; }
@@ -26,4 +30,7 @@ public class LeagueEntry {
 
     public int getLosses() { return losses; }
     public void setLosses(int losses) { this.losses = losses; }
+
+    public String getLeagueId() { return leagueId; }
+    public void setLeagueId(String leagueId) { this.leagueId = leagueId; }
 }

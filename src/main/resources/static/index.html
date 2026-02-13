@@ -2,96 +2,95 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RukiiLoL</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <base href="/" />
+
+    <title>RukiiLoL — Tracker</title>
     <link rel="stylesheet" href="/styles.css" />
+
+    <link rel="icon" href="/favicon.ico">
 </head>
 
 <body>
 <header>
-    <div class="container header-content">
-        <div class="logo">RukiiLoL</div>
+    <div class="header-content">
+        <a class="brand" href="/" id="brandLink" title="Volver al inicio">
+            <div class="brand-dot"></div>
+            <div class="brand-text">
+                <div class="brand-title">RukiiLoL</div>
+                <div class="brand-sub">LoL tracker</div>
+            </div>
+        </a>
 
         <nav class="menu">
-            <a href="#">Tierlist&Build</a>
-            <a href="#">Leaderboards</a>
+            <a class="menu-link" href="#" id="historyNav">Historial</a>
+            <a class="menu-link" href="https://u.gg/lol/tier-list" target="_blank" rel="noopener noreferrer">
+                Champions Tier List
+            </a>
+            <a class="menu-link" href="https://www.twitch.tv/rukiien" target="_blank" rel="noopener noreferrer">
+                Twitch
+            </a>
+            <button class="lang-btn" type="button">EUW</button>
         </nav>
-
-        <div class="header-actions">
-            <button class="lang-btn">Español</button>
-        </div>
     </div>
 </header>
 
 
 <main>
-    <main>
-        <!-- HOME -->
-        <section class="hero view view-home">
-            <div class="container">
-                <h2>Busca tu invocador</h2>
-                <p>Consulta estadísticas y partidas.</p>
+    <section class="view-home">
+        <div class="hero">
+            <h1>Busca tu cuenta</h1>
+            <p>Formato: <b>Nombre#TAG</b> (Ej: Rukiien#C18)</p>
 
-                <form class="search-form">
-                    <div class="input-wrapper">
-                        <input class="riot-id" type="text" placeholder="Riot ID (ej: Pepito#EUW)" />
-                        <span class="search-icon">🔍</span>
-                    </div>
-                </form>
-            </div>
-        </section>
+            <form class="search-form">
+                <div class="input-wrapper">
+                    <input class="riot-id" type="text" placeholder="Rukiien#C18" autocomplete="off" />
+                    <span class="search-icon" title="Buscar">🔎</span>
+                </div>
+            </form>
+        </div>
+    </section>
 
-        <section class="view view-profile hidden">
-            <div class="container">
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        <img id="profileIcon" alt="Icono" />
-                        <span class="profile-level" id="profileLevel"></span>
-                    </div>
+    <section class="view-profile hidden">
+        <div class="profile-top">
+            <button id="backBtn" class="secondary-btn" type="button">← Volver</button>
 
-                    <div class="profile-meta">
-                        <div class="profile-name" id="profileName">—</div>
-                        <div class="profile-sub" id="profileSub">—</div>
-                    </div>
-
-                    <div class="profile-actions">
-                        <button class="secondary-btn" id="backBtn">← Volver</button>
-                    </div>
+            <div class="profile-identity">
+                <div class="profile-avatar" id="avatarWrap">
+                    <img id="profileIcon" alt="icono" />
+                    <div class="profile-level" id="profileLevel"></div>
                 </div>
 
-                <div class="profile-tabs">
-                    <button class="tab active">Summary</button>
-                    <button class="tab">Champions</button>
-                    <button class="tab">Live Game</button>
-                </div>
-
-                <div class="profile-content">
-                    <div class="left-col">
-                        <div class="panel" id="rankPanel">
-                            <div class="panel-title">Ranked Solo</div>
-                            <div id="rankInfo"></div>
-                        </div>
-                    </div>
-                    <div class="right-col">
-                        <div class="panel">
-                            <div class="panel-title">Últimas partidas</div>
-                            <div class="results"></div>
-                            <button class="secondary-btn load-more-btn hidden" id="loadMoreBtn">
-                                Cargar más
-                            </button>
-                        </div>
-                    </div>
+                <div class="profile-text">
+                    <div id="profileName" class="profile-name">—</div>
+                    <div id="profileSub" class="profile-sub"></div>
                 </div>
             </div>
-        </section>
-    </main>
+        </div>
+
+        <div class="profile-content">
+            <aside class="panel">
+                <div class="panel-title">Ranked Solo</div>
+
+                <div id="rankInfo" class="rank-slot">
+                    <div class="small">Cargando...</div>
+                </div>
+            </aside>
+
+            <section class="panel">
+                <div class="panel-title">Últimas partidas</div>
+                <div class="results"></div>
+
+                <button id="loadMoreBtn" class="load-more hidden" type="button">
+                    Cargar más
+                </button>
+            </section>
+        </div>
+    </section>
 </main>
 
-<footer>
-    <div class="container">
-        <p>Proyecto Rukii 1 DAM</p>
-    </div>
-</footer>
+<footer>Proyecto Rukii 1 DAM</footer>
+
 <script src="/app.js"></script>
 </body>
 </html>
